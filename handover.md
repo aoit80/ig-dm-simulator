@@ -15,7 +15,9 @@ TikTok動画制作用のInstagram DM風チャットシミュレーター。
 
 ## 使用用途・運用想定
 
-- 複数人が使用する（GitHub Pages等でホスティングして共有URL配布）
+- 複数人が使用する（GitHub Pages でホスティング済み）
+- **共有URL：`https://aoit80.github.io/ig-dm-simulator/`**
+- **リポジトリ：`https://github.com/aoit80/ig-dm-simulator`**
 - スマホ（iPhone Chrome）がメイン操作環境
 - PC（Chrome）でも動作確認済み
 - `file://`での直接開封は不可（localStorageがセキュリティブロックされる）
@@ -91,7 +93,6 @@ TikTok動画制作用のInstagram DM風チャットシミュレーター。
 
 ## 今後やりたいこと（未実装）
 
-- GitHub Pagesでのホスティング・共有URL発行
 - 発言者変更・メッセージ削除・任意位置への挿入
 - タイムスタンプの編集UI
 - 撮影完了後のプレビューギャラリー
