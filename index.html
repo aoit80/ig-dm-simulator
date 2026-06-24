@@ -897,6 +897,8 @@ $('header-name-input').addEventListener('input', e => saveName(e.target.value));
 // ============================================================
 // スクショ自動化
 // ============================================================
+const waitForPaint = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
 const enterShotMode = () => {
     if (state.messages.length === 0) { alert('メッセージがありません'); return; }
 
@@ -975,6 +977,7 @@ $('next-shot-btn').addEventListener('click', async () => {
     $('next-shot-btn').disabled = true;
     $('next-shot-btn').textContent = '撮影中...';
 
+    await waitForPaint();
     await takeShot();
 
     state.shotIndex++;
@@ -990,6 +993,7 @@ $('next-shot-btn').addEventListener('click', async () => {
     scrollToCurrentMsg();
     updateShotLabel();
 
+    await waitForPaint();
     $('next-shot-btn').disabled = false;
     $('next-shot-btn').textContent = '📸 撮影して次へ';
 });
