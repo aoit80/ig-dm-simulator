@@ -927,10 +927,7 @@ const scrollToCurrentMsg = () => {
     const rows = chatArea.querySelectorAll('.msg-row');
     const target = rows[state.shotIndex];
     if (!target) return;
-    // 対象メッセージをチャットエリアの上部に
-    const areaTop = chatArea.getBoundingClientRect().top;
-    const msgTop = target.getBoundingClientRect().top;
-    chatArea.scrollTop += (msgTop - areaTop) - 12;
+    chatArea.scrollTop = target.offsetTop - 12;
 };
 
 const updateShotLabel = () => {
