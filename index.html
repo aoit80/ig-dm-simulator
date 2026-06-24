@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Instagram DM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            background: #fff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            position: relative;
+        }
+
+        /* ステータスバー */
+        #status-bar {
+            height: 44px;
+            background: #fff;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 0 20px 6px;
+            flex-shrink: 0;
+        }
+        #status-bar .time { color: #000; font-size: 15px; font-weight: 600; }
+        #status-bar .icons { color: #000; display: flex; gap: 6px; align-items: center; font-size: 11px; font-weight: 700; }
+
+        /* ヘッダー */
+        #header {
+            background: #fff;
+            border-bottom: 0.5px solid #dbdbdb;
+            padding: 8px 16px 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        #back-btn { color: #000; font-size: 26px; line-height: 1; flex-shrink: 0; padding: 4px; }
+        #header-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: #e0e0e0; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        #header-avatar svg { width: 22px; height: 22px; color: #999; }
+        #header-name-wrap { flex: 1; min-width: 0; }
+        #header-name-input {
+            background: transparent; border: none; border-bottom: 1px solid transparent;
+            color: #000; font-size: 15px; font-weight: 600; outline: none;
+            width: 100%; padding: 0; -webkit-appearance: none;
+        }
+        #header-name-input:focus { border-bottom-color: #bbb; }
+        #header-sub { color: #8E8E93; font-size: 11px; margin-top: 1px; }
+        #header-right { display: flex; gap: 16px; }
+        #header-right svg { width: 24px; height: 24px; color: #000; }
+
+        /* チャットエリア */
+        #chat-area {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 8px 12px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            -webkit-overflow-scrolling: touch;
+        }
+        #chat-area::-webkit-scrollbar { display: none; }
+
+        /* メッセージ行 */
+        .msg-row { display: flex; align-items: flex-end; gap: 8px; }
+        .msg-row.me { justify-content: flex-end; }
+        .msg-row.partner { justify-content: flex-start; }
+
+        .msg-avatar {
+            width: 26px; height: 26px; border-radius: 50%;
+            background: #e0e0e0; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .msg-avatar svg { width: 16px; height: 16px; color: #999; }
+
+        .bubble-wrap { display: flex; flex-direction: column; max-width: 75%; }
+        .msg-row.me .bubble-wrap { align-items: flex-end; }
+        .msg-row.partner .bubble-wrap { align-items: flex-start; }
+
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 22px;
+            font-size: 15px;
+            line-height: 1.45;
+            word-break: break-word;
+            position: relative;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .bubble.me {
+            background: linear-gradient(135deg, #9B30D9, #C13DC7);
+            color: #fff; border-bottom-right-radius: 6px;
+        }
+        .bubble.partner {
+            background: #efefef; color: #000; border-bottom-left-radius: 6px;
+        }
+        .bubble.hidden-text .bubble-text { visibility: hidden; }
+        .bubble.long-press-active { opacity: 0.7; }
+
+        .msg-meta {
+            display: flex; align-items: center; gap: 4px;
+            margin-top: 3px; font-size: 10px; color: #8E8E93;
+        }
+        .msg-row.me .msg-meta { flex-direction: row-reverse; }
+
+        .read-label {
+            font-size: 10px; color: #8E8E93;
+            -webkit-user-select: none; user-select: none;
+        }
+        .read-label.hidden-read { visibility: hidden; }
+
+        .time-display { font-size: 10px; color: #8E8E93; }
+
+        /* フッター（DM入力欄ダミー） */
+        #dm-footer {
+            background: #fff;
+            border-top: 0.5px solid #dbdbdb;
+            padding: 8px 12px 28px;
+            display: flex; align-items: center; gap: 10px;
+            flex-shrink: 0;
+        }
+        #dm-footer-icon svg { width: 28px; height: 28px; color: #000; }
+        #dm-footer-input {
+            flex: 1; background: #fff; border: 1px solid #dbdbdb;
+            border-radius: 22px; padding: 9px 16px;
+            color: #000; font-size: 15px; outline: none;
+            -webkit-appearance: none;
+        }
+        #dm-footer-input::placeholder { color: #8E8E93; }
+        #dm-send-btn {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: linear-gradient(135deg, #9B30D9, #C13DC7);
+            border: none; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        #dm-send-btn svg { width: 16px; height: 16px; color: #fff; pointer-events: none; }
+
+        /* ============================================================
+           撮影モード中のオーバーレイボタン
+        ============================================================ */
+        #shot-overlay {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            padding: 16px 20px 40px;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), transparent);
+            z-index: 50;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        #shot-overlay.active { display: flex; }
+
+        #shot-progress-label {
+            color: #8E8E93; font-size: 13px;
+        }
+        #next-shot-btn {
+            width: 100%; max-width: 340px;
+            padding: 16px;
+            background: linear-gradient(135deg, #9B30D9, #C13DC7);
+            color: #fff; font-size: 17px; font-weight: 700;
+            border: none; border-radius: 14px;
+            -webkit-appearance: none; cursor: pointer;
+        }
+        #exit-shot-btn {
+            color: #8E8E93; font-size: 14px;
+            background: none; border: none; padding: 4px 16px;
+        }
+
+        /* ============================================================
+           ドロワー（下から引き出す操作パネル）
+        ============================================================ */
+        #drawer-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 60;
+        }
+        #drawer-overlay.open { display: block; }
+
+        #drawer {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #1a1a1a;
+            border-radius: 20px 20px 0 0;
+            z-index: 70;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #drawer.open { transform: translateY(0); }
+
+        #drawer-handle {
+            width: 36px; height: 4px; background: #444;
+            border-radius: 2px; margin: 12px auto 0;
+            flex-shrink: 0;
+        }
+
+        /* ドロワータブ */
+        #drawer-tabs {
+            display: flex;
+            border-bottom: 1px solid #2a2a2a;
+            flex-shrink: 0;
+            margin-top: 12px;
+        }
+        .drawer-tab {
+            flex: 1; padding: 12px 8px; text-align: center;
+            color: #8E8E93; font-size: 13px; font-weight: 600;
+            background: none; border: none; border-bottom: 2px solid transparent;
+            -webkit-appearance: none; cursor: pointer;
+        }
+        .drawer-tab.active { color: #fff; border-bottom-color: #9B30D9; }
+
+        /* ドロワーコンテンツ */
+        #drawer-content {
+            flex: 1; overflow-y: auto; padding: 16px 16px 40px;
+            -webkit-overflow-scrolling: touch;
+        }
+        #drawer-content::-webkit-scrollbar { display: none; }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        /* iOSでdisplay:none内のボタンが反応しない対策 */
+        #tab-shot { -webkit-overflow-scrolling: touch; }
+
+        /* ドロワー内パーツ */
+        .drawer-label {
+            color: #8E8E93; font-size: 11px; font-weight: 600;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .drawer-section { margin-bottom: 20px; }
+
+        .toggle-row {
+            display: flex; align-items: center;
+            justify-content: center; gap: 12px; margin-bottom: 12px;
+        }
+        .toggle-label { color: #ccc; font-size: 14px; }
+        .toggle-wrap { position: relative; display: inline-block; }
+        .toggle-wrap input { display: none; }
+        .toggle-track {
+            width: 52px; height: 30px; background: #333;
+            border-radius: 15px; cursor: pointer;
+            transition: background 0.3s; display: block;
+        }
+        .toggle-wrap input:checked + .toggle-track { background: #9B30D9; }
+        .toggle-thumb {
+            position: absolute; top: 3px; left: 3px;
+            width: 24px; height: 24px; background: #fff;
+            border-radius: 50%; transition: transform 0.3s; pointer-events: none;
+        }
+        .toggle-wrap input:checked ~ .toggle-thumb { transform: translateX(22px); }
+
+        .drawer-input {
+            width: 100%; background: #111; border: 1px solid #333;
+            border-radius: 12px; padding: 12px 14px;
+            color: #fff; font-size: 15px; outline: none;
+            -webkit-appearance: none; margin-bottom: 10px;
+        }
+        .drawer-input::placeholder { color: #555; }
+
+        .drawer-textarea {
+            width: 100%; height: 160px; background: #111;
+            border: 1px solid #333; border-radius: 12px;
+            padding: 12px 14px; color: #fff; font-size: 14px;
+            outline: none; resize: none; -webkit-appearance: none;
+            line-height: 1.5; margin-bottom: 10px;
+        }
+        .drawer-textarea::placeholder { color: #555; }
+
+        .btn {
+            width: 100%; padding: 14px; border-radius: 12px;
+            border: none; font-size: 15px; font-weight: 700;
+            -webkit-appearance: none; cursor: pointer;
+            margin-bottom: 8px;
+        }
+        .btn:active { opacity: 0.8; }
+        .btn-purple { background: linear-gradient(135deg, #9B30D9, #C13DC7); color: #fff; }
+        .btn-gray { background: #2C2C2E; color: #fff; }
+        .btn-green { background: #1DB954; color: #fff; }
+        .btn-danger { background: #E0284A; color: #fff; }
+
+        /* ドロワーを開くFABボタン */
+        #fab {
+            position: fixed;
+            bottom: 32px; right: 20px;
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #9B30D9, #C13DC7);
+            border: none; z-index: 40;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 20px rgba(155,48,217,0.5);
+            cursor: pointer;
+        }
+        #fab svg { width: 24px; height: 24px; color: #fff; pointer-events: none; }
+        #fab.hidden { display: none; }
+
+        /* ============================================================
+           モーダル（編集）
+        ============================================================ */
+        #modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7); z-index: 100;
+            align-items: flex-end; justify-content: center;
+            padding-bottom: 0;
+        }
+        #modal-overlay.open { display: flex; }
+        #modal-box {
+            background: #1a1a1a; border-radius: 20px 20px 0 0;
+            padding: 20px 20px 40px; width: 100%;
+        }
+        #modal-title { color: #fff; font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+        #modal-input {
+            width: 100%; background: #111; border: 1px solid #333;
+            border-radius: 12px; padding: 12px 14px;
+            color: #fff; font-size: 15px; outline: none;
+            -webkit-appearance: none; margin-bottom: 14px;
+        }
+        #modal-actions { display: flex; gap: 10px; }
+        #modal-actions .btn { flex: 1; margin-bottom: 0; }
+
+        /* ============================================================
+           長押しメニュー
+        ============================================================ */
+        #long-press-menu {
+            display: none; position: fixed;
+            background: #2a2a2a; border: 1px solid #3a3a3a;
+            border-radius: 14px; z-index: 90;
+            overflow: hidden; min-width: 160px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        }
+        #long-press-menu.open { display: block; }
+        #long-press-menu button {
+            display: block; width: 100%; text-align: left;
+            padding: 14px 18px; background: none; border: none;
+            color: #fff; font-size: 15px; -webkit-appearance: none;
+            border-bottom: 1px solid #3a3a3a;
+        }
+        #long-press-menu button:last-child { border-bottom: none; }
+        #long-press-menu button:active { background: #3a3a3a; }
+    </style>
+</head>
+<body>
+
+<!-- ============================================================
+     DM画面
+============================================================ -->
+<div id="app">
+
+    <!-- ステータスバー -->
+    <div id="status-bar">
+        <span class="time" id="status-time">12:00</span>
+        <div class="icons">
+            <svg width="17" height="12" viewBox="0 0 17 12" fill="white"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0.5" width="3" height="11.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1" opacity="0.3"/></svg>
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="white"><path d="M8 2.5C10.5 2.5 12.7 3.6 14.2 5.3L15.5 4C13.6 1.9 11 0.5 8 0.5C5 0.5 2.4 1.9 0.5 4L1.8 5.3C3.3 3.6 5.5 2.5 8 2.5Z"/><path d="M8 5.5C9.7 5.5 11.2 6.2 12.3 7.3L13.6 6C12.1 4.6 10.1 3.7 8 3.7C5.9 3.7 3.9 4.6 2.4 6L3.7 7.3C4.8 6.2 6.3 5.5 8 5.5Z"/><circle cx="8" cy="10" r="1.8"/></svg>
+            <span>76%</span>
+        </div>
+    </div>
+
+    <!-- ヘッダー -->
+    <div id="header">
+        <span id="back-btn">‹</span>
+        <div id="header-avatar">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+        </div>
+        <div id="header-name-wrap">
+            <input id="header-name-input" type="text" value="田中さん" maxlength="20" autocomplete="off" />
+            <div id="header-sub">2時間前にオンライン</div>
+        </div>
+        <div id="header-right">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.5a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .82h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.66a16 16 0 006.29 6.29l1.25-1.25a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </div>
+    </div>
+
+    <!-- チャットエリア -->
+    <div id="chat-area"></div>
+
+    <!-- DM入力フッター（ダミー） -->
+    <div id="dm-footer">
+        <div id="dm-footer-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+        </div>
+        <input id="dm-footer-input" type="text" placeholder="メッセージを入力..." />
+        <button id="dm-send-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+    </div>
+</div>
+
+<!-- ============================================================
+     撮影モードオーバーレイ
+============================================================ -->
+<div id="shot-overlay">
+    <div id="shot-progress-label"></div>
+    <button id="next-shot-btn">📸 撮影して次へ</button>
+    <button id="exit-shot-btn">撮影を終了する</button>
+</div>
+
+<!-- ============================================================
+     FABボタン（ドロワーを開く）
+============================================================ -->
+<button id="fab" aria-label="メニューを開く">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+</button>
+
+<!-- ============================================================
+     ドロワー
+============================================================ -->
+<div id="drawer-overlay"></div>
+<div id="drawer">
+    <div id="drawer-handle"></div>
+
+    <!-- タブ -->
+    <div id="drawer-tabs">
+        <button class="drawer-tab active" data-tab="msg">メッセージ</button>
+        <button class="drawer-tab" data-tab="script">台本</button>
+        <button class="drawer-tab" data-tab="shot">撮影</button>
+        <button class="drawer-tab" data-tab="settings">設定</button>
+    </div>
+
+    <!-- コンテンツ -->
+    <div id="drawer-content">
+
+        <!-- メッセージタブ -->
+        <div class="tab-pane active" id="tab-msg">
+            <div class="drawer-section">
+                <div class="drawer-label">送信者</div>
+                <div class="toggle-row">
+                    <span class="toggle-label">相手</span>
+                    <label class="toggle-wrap">
+                        <input type="checkbox" id="sender-toggle" checked>
+                        <span class="toggle-track"></span>
+                        <span class="toggle-thumb"></span>
+                    </label>
+                    <span class="toggle-label">自分</span>
+                </div>
+                <input type="text" class="drawer-input" id="panel-msg-input" placeholder="メッセージを入力...">
+                <button class="btn btn-purple" id="panel-send-btn">追加</button>
+            </div>
+        </div>
+
+        <!-- 台本タブ -->
+        <div class="tab-pane" id="tab-script">
+            <div class="drawer-section">
+                <div class="drawer-label">台本を貼り付け</div>
+                <textarea class="drawer-textarea" id="script-textarea" placeholder="🤓 相手のセリフ&#10;👤 自分のセリフ&#10;---（スキップ行）"></textarea>
+                <button class="btn btn-gray" id="import-btn">読み込む</button>
+            </div>
+        </div>
+
+        <!-- 撮影タブ -->
+        <div class="tab-pane" id="tab-shot">
+            <div class="drawer-section">
+                <div class="drawer-label">スクショ自動撮影</div>
+                <p style="color:#8E8E93;font-size:13px;margin-bottom:14px;line-height:1.6;">
+                    台本を読み込んだ後、撮影モードを開始。<br>
+                    「撮影して次へ」を押すたびに1枚ずつPNG保存されます。
+                </p>
+                <button class="btn btn-green" id="start-shot-btn">▶ 撮影モード開始</button>
+            </div>
+        </div>
+
+        <!-- 設定タブ -->
+        <div class="tab-pane" id="tab-settings">
+            <div class="drawer-section">
+                <div class="drawer-label">相手の名前</div>
+                <input type="text" class="drawer-input" id="settings-name-input" placeholder="田中さん" maxlength="20">
+                <button class="btn btn-gray" id="settings-name-btn">変更する</button>
+            </div>
+            <div class="drawer-section">
+                <div class="drawer-label">会話</div>
+                <button class="btn btn-danger" id="clear-btn">会話をリセット</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ============================================================
+     編集モーダル
+============================================================ -->
+<div id="modal-overlay">
+    <div id="modal-box">
+        <div id="modal-title">メッセージを編集</div>
+        <input type="text" id="modal-input" autocomplete="off">
+        <div id="modal-actions">
+            <button class="btn btn-gray" id="modal-cancel">キャンセル</button>
+            <button class="btn btn-purple" id="modal-save">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 長押しメニュー -->
+<div id="long-press-menu">
+    <button id="lp-edit">編集</button>
+    <button id="lp-toggle-read" style="display:none">既読切り替え</button>
+</div>
+
+<script>
+// ============================================================
+// ユーティリティ
+// ============================================================
+const $ = id => document.getElementById(id);
+const getNow = () => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+};
+
+// ============================================================
+// 状態管理
+// ============================================================
+const state = {
+    messages: [],
+    shotMode: false,
+    shotIndex: -1,
+    editingId: null,
+    longPressTargetId: null,
+};
+
+const save = () => localStorage.setItem('ig-dm-v2', JSON.stringify(state.messages));
+const saveName = name => localStorage.setItem('ig-dm-name', name);
+
+const load = () => {
+    const s = localStorage.getItem('ig-dm-v2');
+    if (s) {
+        state.messages = JSON.parse(s);
+    } else {
+        const t = getNow();
+        state.messages = [
+            { id: 1, sender: 'partner', text: 'こんにちは！', time: t, read: false, hidden: false },
+            { id: 2, sender: 'me', text: 'お疲れ様です！', time: t, read: true, hidden: false },
+        ];
+    }
+};
+
+// ============================================================
+// DOM描画
+// ============================================================
+const chatArea = $('chat-area');
+const avatarSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+
+const createMsgEl = (msg) => {
+    const isMe = msg.sender === 'me';
+    const row = document.createElement('div');
+    row.className = `msg-row ${isMe ? 'me' : 'partner'}`;
+    row.dataset.id = msg.id;
+
+    if (!isMe) {
+        const av = document.createElement('div');
+        av.className = 'msg-avatar';
+        av.innerHTML = avatarSVG;
+        row.appendChild(av);
+    }
+
+    const wrap = document.createElement('div');
+    wrap.className = 'bubble-wrap';
+
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${isMe ? 'me' : 'partner'}${msg.hidden ? ' hidden-text' : ''}`;
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'bubble-text';
+    textSpan.style.pointerEvents = 'none';
+    textSpan.textContent = msg.text;
+    bubble.appendChild(textSpan);
+
+    // 長押し検出（iOS対応）
+    let pressTimer = null;
+    let moved = false;
+
+    bubble.addEventListener('touchstart', e => {
+        moved = false;
+        pressTimer = setTimeout(() => {
+            if (!moved && !state.shotMode) {
+                bubble.classList.add('long-press-active');
+                showLongPressMenu(msg.id, isMe, e.touches[0]);
+                if (navigator.vibrate) navigator.vibrate(30);
+            }
+        }, 500);
+    }, { passive: true });
+
+    bubble.addEventListener('touchmove', () => {
+        moved = true;
+        clearTimeout(pressTimer);
+    }, { passive: true });
+
+    bubble.addEventListener('touchend', () => {
+        clearTimeout(pressTimer);
+        bubble.classList.remove('long-press-active');
+    });
+
+    bubble.addEventListener('touchcancel', () => {
+        clearTimeout(pressTimer);
+        bubble.classList.remove('long-press-active');
+    });
+
+    // PC用右クリック
+    bubble.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        if (!state.shotMode) showLongPressMenuByXY(msg.id, isMe, e.clientX, e.clientY);
+    });
+
+    wrap.appendChild(bubble);
+
+    // メタ行
+    const meta = document.createElement('div');
+    meta.className = 'msg-meta';
+
+    if (isMe) {
+        const readEl = document.createElement('span');
+        readEl.className = `read-label${msg.read ? '' : ' hidden-read'}`;
+        readEl.textContent = '既読';
+        readEl.dataset.msgId = msg.id;
+        meta.appendChild(readEl);
+    }
+
+    const timeEl = document.createElement('span');
+    timeEl.className = 'time-display';
+    timeEl.textContent = msg.time || '';
+    meta.appendChild(timeEl);
+
+    wrap.appendChild(meta);
+    row.appendChild(wrap);
+    return row;
+};
+
+const renderAll = () => {
+    chatArea.innerHTML = '';
+    state.messages.forEach(msg => chatArea.appendChild(createMsgEl(msg)));
+    chatArea.scrollTop = chatArea.scrollHeight;
+};
+
+const addMessage = (text, sender) => {
+    const msg = { id: Date.now(), sender, text, time: getNow(), read: sender === 'me', hidden: false };
+    state.messages.push(msg);
+    save();
+    chatArea.appendChild(createMsgEl(msg));
+    chatArea.scrollTop = chatArea.scrollHeight;
+};
+
+// ============================================================
+// 長押しメニュー
+// ============================================================
+const showLongPressMenu = (id, isMe, touch) => {
+    showLongPressMenuByXY(id, isMe, touch.clientX, touch.clientY);
+};
+
+const showLongPressMenuByXY = (id, isMe, x, y) => {
+    state.longPressTargetId = id;
+    const menu = $('long-press-menu');
+
+    // 既読ボタンは自分のメッセージのみ表示
+    $('lp-toggle-read').style.display = isMe ? 'block' : 'none';
+
+    menu.classList.add('open');
+
+    // 位置計算（画面端対策）
+    const mw = 180, mh = isMe ? 100 : 56;
+    const left = Math.min(x, window.innerWidth - mw - 8);
+    const top = y - mh - 8 < 0 ? y + 8 : y - mh - 8;
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+};
+
+const closeLongPressMenu = () => {
+    $('long-press-menu').classList.remove('open');
+    state.longPressTargetId = null;
+};
+
+$('lp-edit').addEventListener('click', () => {
+    const id = state.longPressTargetId;
+    closeLongPressMenu();
+    openEditModal(id);
+});
+
+$('lp-toggle-read').addEventListener('click', () => {
+    const id = state.longPressTargetId;
+    closeLongPressMenu();
+    toggleRead(id);
+});
+
+document.addEventListener('touchstart', e => {
+    if (!e.target.closest('#long-press-menu')) closeLongPressMenu();
+}, { passive: true });
+document.addEventListener('mousedown', e => {
+    if (!e.target.closest('#long-press-menu')) closeLongPressMenu();
+});
+
+// ============================================================
+// 既読切り替え
+// ============================================================
+const toggleRead = (id) => {
+    const m = state.messages.find(m => String(m.id) === String(id));
+    if (!m || m.sender !== 'me') return;
+    m.read = !m.read;
+    save();
+    // DOM直接更新
+    const row = chatArea.querySelector(`[data-id="${id}"]`);
+    if (row) {
+        const readEl = row.querySelector('.read-label');
+        if (readEl) readEl.classList.toggle('hidden-read', !m.read);
+    }
+};
+
+// ============================================================
+// 編集モーダル
+// ============================================================
+const openEditModal = (id) => {
+    state.editingId = id;
+    const m = state.messages.find(m => String(m.id) === String(id));
+    $('modal-input').value = m ? m.text : '';
+    $('modal-overlay').classList.add('open');
+    setTimeout(() => $('modal-input').focus(), 100);
+};
+
+$('modal-cancel').addEventListener('click', () => $('modal-overlay').classList.remove('open'));
+$('modal-save').addEventListener('click', () => {
+    const m = state.messages.find(m => String(m.id) === String(state.editingId));
+    if (m) {
+        m.text = $('modal-input').value;
+        save();
+        // DOM直接更新
+        const row = chatArea.querySelector(`[data-id="${state.editingId}"]`);
+        if (row) {
+            const textEl = row.querySelector('.bubble-text');
+            if (textEl) textEl.textContent = m.text;
+        }
+    }
+    $('modal-overlay').classList.remove('open');
+});
+
+// ============================================================
+// 台本読み込み
+// ============================================================
+const importScript = () => {
+    const text = $('script-textarea').value.trim();
+    if (!text) return;
+
+    state.messages = [];
+    const lines = text.split('\n');
+    let currentSpeaker = null;
+    let currentLines = [];
+
+    const flush = () => {
+        if (currentSpeaker && currentLines.length > 0) {
+            state.messages.push({
+                id: Date.now() + Math.random(),
+                sender: currentSpeaker,
+                text: currentLines.join('\n'),
+                time: getNow(),
+                read: currentSpeaker === 'me',
+                hidden: false,
+            });
+        }
+        currentLines = [];
+    };
+
+    lines.forEach(line => {
+        const t = line.trim();
+        if (!t) return;
+        if (t.startsWith('---') || t.startsWith('~~~') || t.startsWith('心の声')
+            || t.startsWith('LINE：') || t.startsWith('PR：') || t.startsWith('#')) return;
+
+        let speaker = null;
+        if (t.startsWith('🤓') || t.startsWith('👩‍💼')) speaker = 'partner';
+        if (t.startsWith('👤') || t.startsWith('👨‍💻') || t.startsWith('👩‍💻')) speaker = 'me';
+
+        if (speaker) {
+            flush();
+            currentSpeaker = speaker;
+            const rest = t.replace(/^[^\s]+/, '').replace(/^：/, '').trim();
+            if (rest) currentLines.push(rest);
+        } else if (currentSpeaker && t) {
+            currentLines.push(t);
+        }
+    });
+    flush();
+
+    save();
+    renderAll();
+    $('script-textarea').value = '';
+    closeDrawer();
+};
+
+$('import-btn').addEventListener('click', importScript);
+
+// ============================================================
+// メッセージ送信
+// ============================================================
+$('panel-send-btn').addEventListener('click', () => {
+    const text = $('panel-msg-input').value.trim();
+    if (!text) return;
+    const sender = $('sender-toggle').checked ? 'me' : 'partner';
+    addMessage(text, sender);
+    $('panel-msg-input').value = '';
+    closeDrawer();
+});
+
+$('panel-msg-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') $('panel-send-btn').click();
+});
+
+// DM画面のフッター入力（実際に送信）
+$('dm-send-btn').addEventListener('click', () => {
+    const text = $('dm-footer-input').value.trim();
+    if (!text) return;
+    const sender = $('sender-toggle').checked ? 'me' : 'partner';
+    addMessage(text, sender);
+    $('dm-footer-input').value = '';
+});
+$('dm-footer-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') $('dm-send-btn').click();
+});
+
+// ============================================================
+// ドロワー開閉
+// ============================================================
+const openDrawer = () => {
+    $('drawer').classList.add('open');
+    $('drawer-overlay').classList.add('open');
+};
+const closeDrawer = () => {
+    $('drawer').classList.remove('open');
+    $('drawer-overlay').classList.remove('open');
+};
+
+$('fab').addEventListener('click', openDrawer);
+$('drawer-overlay').addEventListener('click', closeDrawer);
+
+// タブ切り替え
+document.querySelectorAll('.drawer-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.drawer-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        $(`tab-${tab.dataset.tab}`).classList.add('active');
+    });
+});
+
+// ドロワーのスワイプで閉じる
+let drawerStartY = 0;
+$('drawer-handle').addEventListener('touchstart', e => {
+    drawerStartY = e.touches[0].clientY;
+}, { passive: true });
+$('drawer-handle').addEventListener('touchend', e => {
+    if (e.changedTouches[0].clientY - drawerStartY > 60) closeDrawer();
+}, { passive: true });
+
+// ============================================================
+// 設定
+// ============================================================
+$('settings-name-btn').addEventListener('click', () => {
+    const name = $('settings-name-input').value.trim();
+    if (!name) return;
+    $('header-name-input').value = name;
+    saveName(name);
+    closeDrawer();
+});
+
+$('clear-btn').addEventListener('click', () => {
+    if (confirm('会話をリセットしますか？')) {
+        state.messages = [];
+        save();
+        renderAll();
+        closeDrawer();
+    }
+});
+
+$('header-name-input').addEventListener('input', e => saveName(e.target.value));
+
+// ============================================================
+// スクショ自動化
+// ============================================================
+const enterShotMode = () => {
+    if (state.messages.length === 0) { alert('メッセージがありません'); return; }
+
+    closeDrawer();
+
+    // ドロワーのtransition（0.3s）完了後に実行
+    setTimeout(() => {
+        state.shotMode = true;
+        state.shotIndex = 0;
+        state.messages.forEach(m => m.hidden = true);
+        state.messages[0].hidden = false;
+
+        renderAll();
+
+        requestAnimationFrame(() => {
+            scrollToCurrentMsg();
+            $('fab').classList.add('hidden');
+            $('dm-footer').style.display = 'none';
+            $('shot-overlay').classList.add('active');
+            updateShotLabel();
+        });
+    }, 350);
+};
+
+const scrollToCurrentMsg = () => {
+    const rows = chatArea.querySelectorAll('.msg-row');
+    const target = rows[state.shotIndex];
+    if (!target) return;
+    // 対象メッセージをチャットエリアの上部に
+    const areaTop = chatArea.getBoundingClientRect().top;
+    const msgTop = target.getBoundingClientRect().top;
+    chatArea.scrollTop += (msgTop - areaTop) - 12;
+};
+
+const updateShotLabel = () => {
+    $('shot-progress-label').textContent =
+        `${state.shotIndex + 1} / ${state.messages.length} 枚目を撮影`;
+};
+
+const takeShot = async () => {
+    const TARGET_W = 1080;
+    const TARGET_H = 1920;
+    const areaW = chatArea.offsetWidth;
+    const areaH = chatArea.offsetHeight;
+    const scale = TARGET_W / areaW;
+
+    const canvas = await html2canvas(chatArea, {
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        scale: scale,
+        width: areaW,
+        height: areaH,
+        scrollY: -chatArea.scrollTop,
+        windowWidth: areaW,
+        windowHeight: areaH,
+        y: chatArea.scrollTop,
+        logging: false,
+    });
+
+    const out = document.createElement('canvas');
+    out.width = TARGET_W;
+    out.height = TARGET_H;
+    const ctx = out.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, TARGET_W, TARGET_H);
+    const renderedH = Math.min(canvas.height, TARGET_H);
+    ctx.drawImage(canvas, 0, 0, TARGET_W, renderedH, 0, 0, TARGET_W, renderedH);
+
+    const link = document.createElement('a');
+    link.download = `ig-dm-${String(state.shotIndex + 1).padStart(3, '0')}.png`;
+    link.href = out.toDataURL('image/png');
+    link.click();
+};
+
+$('next-shot-btn').addEventListener('click', async () => {
+    $('next-shot-btn').disabled = true;
+    $('next-shot-btn').textContent = '撮影中...';
+
+    await takeShot();
+
+    state.shotIndex++;
+
+    if (state.shotIndex >= state.messages.length) {
+        exitShotMode();
+        alert(`完了！全 ${state.messages.length} 枚撮影しました`);
+        return;
+    }
+
+    state.messages[state.shotIndex].hidden = false;
+    renderAll();
+    scrollToCurrentMsg();
+    updateShotLabel();
+
+    $('next-shot-btn').disabled = false;
+    $('next-shot-btn').textContent = '📸 撮影して次へ';
+});
+
+const exitShotMode = () => {
+    state.shotMode = false;
+    state.shotIndex = -1;
+    state.messages.forEach(m => m.hidden = false);
+    save();
+    renderAll();
+    $('fab').classList.remove('hidden');
+    $('dm-footer').style.display = 'flex';
+    $('shot-overlay').classList.remove('active');
+};
+
+$('exit-shot-btn').addEventListener('click', exitShotMode);
+$('start-shot-btn').addEventListener('click', enterShotMode);
+
+// ============================================================
+// ステータスバー時刻
+// ============================================================
+setInterval(() => { $('status-time').textContent = getNow(); }, 10000);
+
+// ============================================================
+// 初期化
+// ============================================================
+const init = () => {
+    load();
+    const savedName = localStorage.getItem('ig-dm-name');
+    if (savedName) {
+        $('header-name-input').value = savedName;
+        $('settings-name-input').value = savedName;
+    }
+    $('status-time').textContent = getNow();
+    renderAll();
+};
+
+init();
+</script>
+</body>
+</html>
