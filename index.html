@@ -946,29 +946,31 @@ const takeShot = async () => {
     const TARGET_H = 1920;
     const areaW = chatArea.offsetWidth;
     const areaH = chatArea.offsetHeight;
+    const scrollTop = chatArea.scrollTop;
     const scale = TARGET_W / areaW;
 
+    // Render full scrollable content — avoids scroll-offset coordinate artifacts
     const canvas = await html2canvas(chatArea, {
         backgroundColor: '#ffffff',
         useCORS: true,
         scale: scale,
         width: areaW,
-        height: areaH,
-        scrollY: -chatArea.scrollTop,
+        height: chatArea.scrollHeight,
         windowWidth: areaW,
-        windowHeight: areaH,
-        y: chatArea.scrollTop,
+        windowHeight: chatArea.scrollHeight,
         logging: false,
     });
 
+    // Crop to the visible viewport portion
     const out = document.createElement('canvas');
     out.width = TARGET_W;
     out.height = TARGET_H;
     const ctx = out.getContext('2d');
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, TARGET_W, TARGET_H);
-    const renderedH = Math.min(canvas.height, TARGET_H);
-    ctx.drawImage(canvas, 0, 0, TARGET_W, renderedH, 0, 0, TARGET_W, renderedH);
+    const srcY = Math.round(scrollTop * scale);
+    const srcH = Math.min(Math.round(areaH * scale), TARGET_H);
+    ctx.drawImage(canvas, 0, srcY, TARGET_W, srcH, 0, 0, TARGET_W, srcH);
 
     const link = document.createElement('a');
     link.download = `ig-dm-${String(state.shotIndex + 1).padStart(3, '0')}.png`;
