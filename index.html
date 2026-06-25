@@ -927,7 +927,13 @@ const scrollToCurrentMsg = () => {
     const rows = chatArea.querySelectorAll('.msg-row');
     const target = rows[state.shotIndex];
     if (!target) return;
-    chatArea.scrollTop = target.offsetTop - chatArea.offsetTop - 12;
+    chatArea.scrollTop = 0;
+    const caRect = chatArea.getBoundingClientRect();
+    const tRect = target.getBoundingClientRect();
+    const posBottom = tRect.bottom - caRect.top;
+    if (posBottom > chatArea.clientHeight) {
+        chatArea.scrollTop = posBottom - chatArea.clientHeight + 8;
+    }
 };
 
 const updateShotLabel = () => {
