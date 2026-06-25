@@ -115,10 +115,7 @@
         .bubble.partner {
             background: #efefef; color: #000; border-bottom-left-radius: 6px;
         }
-        .msg-row.hidden-msg .bubble { background: transparent !important; }
-        .msg-row.hidden-msg .bubble-text { color: transparent; }
-        .msg-row.hidden-msg .msg-avatar { opacity: 0; }
-        .msg-row.hidden-msg .msg-meta { opacity: 0; }
+        .bubble.hidden-text .bubble-text { color: transparent; }
         .bubble.long-press-active { opacity: 0.7; }
 
         .msg-meta {
@@ -571,7 +568,7 @@ const avatarSVG = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c
 const createMsgEl = (msg) => {
     const isMe = msg.sender === 'me';
     const row = document.createElement('div');
-    row.className = `msg-row ${isMe ? 'me' : 'partner'}${msg.hidden ? ' hidden-msg' : ''}`;
+    row.className = `msg-row ${isMe ? 'me' : 'partner'}`;
     row.dataset.id = msg.id;
 
     if (!isMe) {
@@ -585,7 +582,7 @@ const createMsgEl = (msg) => {
     wrap.className = 'bubble-wrap';
 
     const bubble = document.createElement('div');
-    bubble.className = `bubble ${isMe ? 'me' : 'partner'}`;
+    bubble.className = `bubble ${isMe ? 'me' : 'partner'}${msg.hidden ? ' hidden-text' : ''}`;
 
     const textSpan = document.createElement('span');
     textSpan.className = 'bubble-text';
