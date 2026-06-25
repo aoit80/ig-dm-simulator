@@ -944,24 +944,32 @@ const updateShotLabel = () => {
 const takeShot = async () => {
     const TARGET_W = 1080;
     const TARGET_H = 1920;
-    const areaW = chatArea.offsetWidth;
-    const areaH = chatArea.offsetHeight;
-    const scrollTop = chatArea.scrollTop;
-    const scale = TARGET_W / areaW;
+    const rect = chatArea.getBoundingClientRect();
+    const scale = TARGET_W / rect.width;
 
-    // Capture only the visible viewport — no virtual-height tricks.
-    // html2canvas reads BCR positions which already reflect scrollTop,
-    // so no y/scrollY params needed. Avoids text/bg Y-offset on WebKit.
-    const canvas = await html2canvas(chatArea, {
+    // Target document.body instead of chatArea directly.
+    // Capturing an overflow:auto element directly causes html2canvas to
+    // miscalculate text Y positions relative to backgrounds on both
+    // Chromium and WebKit. Targeting the body with x/y crop coordinates
+    // uses the browser's own coordinate system — no sub-element scroll
+    // tricks needed, so text and bubble backgrounds stay aligned.
+    const overlay = $('shot-overlay');
+    overlay.style.visibility = 'hidden';
+
+    const canvas = await html2canvas(document.body, {
         backgroundColor: '#ffffff',
         useCORS: true,
         scale: scale,
-        width: areaW,
-        height: areaH,
-        windowWidth: areaW,
-        windowHeight: areaH,
+        x: Math.round(rect.left),
+        y: Math.round(rect.top),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight,
         logging: false,
     });
+
+    overlay.style.visibility = '';
 
     const out = document.createElement('canvas');
     out.width = TARGET_W;
