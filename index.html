@@ -960,6 +960,11 @@ const takeShot = async () => {
     chatArea.scrollTop = 0;
     chatArea.getBoundingClientRect(); // force reflow
 
+    // html2canvas shifts text DOWN ~8px CSS due to font metric rounding.
+    // Compensate in the cloned DOM: reduce padding-top and increase
+    // padding-bottom by the same amount so bubble height/wrapping stay equal.
+    const BASELINE_SHIFT_PX = 8;
+
     const canvas = await html2canvas(chatArea, {
         backgroundColor: '#ffffff',
         useCORS: true,
@@ -969,6 +974,12 @@ const takeShot = async () => {
         windowWidth: chatArea.offsetWidth,
         windowHeight: fullH,
         logging: false,
+        onclone: (_doc, el) => {
+            el.querySelectorAll('.bubble').forEach(b => {
+                b.style.paddingTop = (10 - BASELINE_SHIFT_PX) + 'px';
+                b.style.paddingBottom = (10 + BASELINE_SHIFT_PX) + 'px';
+            });
+        },
     });
 
     chatArea.style.height = savedH;
