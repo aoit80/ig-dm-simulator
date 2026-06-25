@@ -947,29 +947,33 @@ const takeShot = async () => {
     const rect = chatArea.getBoundingClientRect();
     const scale = TARGET_W / rect.width;
 
-    // Target document.body instead of chatArea directly.
-    // Capturing an overflow:auto element directly causes html2canvas to
-    // miscalculate text Y positions relative to backgrounds on both
-    // Chromium and WebKit. Targeting the body with x/y crop coordinates
-    // uses the browser's own coordinate system — no sub-element scroll
-    // tricks needed, so text and bubble backgrounds stay aligned.
-    const overlay = $('shot-overlay');
-    overlay.style.visibility = 'hidden';
+    // Temporarily remove overflow so html2canvas sees a plain block element.
+    // Capturing overflow:auto directly causes html2canvas to misplace text
+    // Y positions. With the element expanded to full content height and
+    // overflow visible, all rendering uses a single flat coordinate system.
+    const savedH = chatArea.style.height;
+    const savedOF = chatArea.style.overflowY;
+    const savedST = chatArea.scrollTop;
+    const fullH = chatArea.scrollHeight;
+    chatArea.style.height = fullH + 'px';
+    chatArea.style.overflowY = 'visible';
+    chatArea.scrollTop = 0;
+    chatArea.getBoundingClientRect(); // force reflow
 
-    const canvas = await html2canvas(document.body, {
+    const canvas = await html2canvas(chatArea, {
         backgroundColor: '#ffffff',
         useCORS: true,
         scale: scale,
-        x: Math.round(rect.left),
-        y: Math.round(rect.top),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
-        windowWidth: window.innerWidth,
-        windowHeight: window.innerHeight,
+        width: chatArea.offsetWidth,
+        height: fullH,
+        windowWidth: chatArea.offsetWidth,
+        windowHeight: fullH,
         logging: false,
     });
 
-    overlay.style.visibility = '';
+    chatArea.style.height = savedH;
+    chatArea.style.overflowY = savedOF;
+    chatArea.scrollTop = savedST;
 
     const out = document.createElement('canvas');
     out.width = TARGET_W;
@@ -977,8 +981,10 @@ const takeShot = async () => {
     const ctx = out.getContext('2d');
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, TARGET_W, TARGET_H);
-    const renderedH = Math.min(canvas.height, TARGET_H);
-    ctx.drawImage(canvas, 0, 0, TARGET_W, renderedH, 0, 0, TARGET_W, renderedH);
+    const areaH = Math.round(rect.height);
+    const srcY = Math.round(savedST * scale);
+    const srcH = Math.min(Math.round(areaH * scale), TARGET_H);
+    ctx.drawImage(canvas, 0, srcY, TARGET_W, srcH, 0, 0, TARGET_W, srcH);
 
     const link = document.createElement('a');
     link.download = `ig-dm-${String(state.shotIndex + 1).padStart(3, '0')}.png`;
