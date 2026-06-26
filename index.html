@@ -932,7 +932,7 @@ const scrollToCurrentMsg = () => {
     const tRect = target.getBoundingClientRect();
     const posBottom = tRect.bottom - caRect.top;
     if (posBottom > chatArea.clientHeight) {
-        chatArea.scrollTop = posBottom - chatArea.clientHeight + 8;
+        chatArea.scrollTop = target.offsetTop - 8;
     }
 };
 
