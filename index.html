@@ -105,8 +105,8 @@
             line-height: 1.45;
             word-break: break-word;
             position: relative;
-            -webkit-user-select: none;
-            user-select: none;
+            -webkit-user-select: text;
+            user-select: text;
         }
         .bubble.me {
             background: linear-gradient(135deg, #9B30D9, #C13DC7);
@@ -590,46 +590,22 @@ const createMsgEl = (msg) => {
     textSpan.textContent = msg.text;
     bubble.appendChild(textSpan);
 
-    // 長押し検出（iOS対応）
-    let pressTimer = null;
+    // タップ／長押し検出
     let moved = false;
     let touchStartTime = 0;
 
-    bubble.addEventListener('touchstart', e => {
+    bubble.addEventListener('touchstart', () => {
         moved = false;
         touchStartTime = Date.now();
-        pressTimer = setTimeout(() => {
-            if (!moved && !state.shotMode) {
-                bubble.classList.add('long-press-active');
-                showLongPressMenu(msg.id, isMe, e.touches[0]);
-                if (navigator.vibrate) navigator.vibrate(30);
-            }
-        }, 500);
     }, { passive: true });
 
-    bubble.addEventListener('touchmove', () => {
-        moved = true;
-        clearTimeout(pressTimer);
-    }, { passive: true });
+    bubble.addEventListener('touchmove', () => { moved = true; }, { passive: true });
 
     bubble.addEventListener('touchend', () => {
-        clearTimeout(pressTimer);
-        bubble.classList.remove('long-press-active');
-        // タップ（350ms以内に離した）でテキスト表示切替
+        // タップ（350ms以内）でテキスト表示切替、長押しはブラウザのネイティブ選択に委ねる
         if (!moved && !state.shotMode && Date.now() - touchStartTime < 350) {
             bubble.classList.toggle('hidden-text');
         }
-    });
-
-    bubble.addEventListener('touchcancel', () => {
-        clearTimeout(pressTimer);
-        bubble.classList.remove('long-press-active');
-    });
-
-    // PC用右クリック
-    bubble.addEventListener('contextmenu', e => {
-        e.preventDefault();
-        if (!state.shotMode) showLongPressMenuByXY(msg.id, isMe, e.clientX, e.clientY);
     });
 
     wrap.appendChild(bubble);
