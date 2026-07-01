@@ -306,7 +306,7 @@
         /* ドロワーを開くFABボタン */
         #fab {
             position: fixed;
-            bottom: 32px; right: 20px;
+            bottom: 8px; right: 20px;
             width: 52px; height: 52px;
             border-radius: 50%;
             background: linear-gradient(135deg, #9B30D9, #C13DC7);
@@ -593,9 +593,11 @@ const createMsgEl = (msg) => {
     // 長押し検出（iOS対応）
     let pressTimer = null;
     let moved = false;
+    let touchStartTime = 0;
 
     bubble.addEventListener('touchstart', e => {
         moved = false;
+        touchStartTime = Date.now();
         pressTimer = setTimeout(() => {
             if (!moved && !state.shotMode) {
                 bubble.classList.add('long-press-active');
@@ -613,6 +615,10 @@ const createMsgEl = (msg) => {
     bubble.addEventListener('touchend', () => {
         clearTimeout(pressTimer);
         bubble.classList.remove('long-press-active');
+        // タップ（350ms以内に離した）でテキスト表示切替
+        if (!moved && !state.shotMode && Date.now() - touchStartTime < 350) {
+            bubble.classList.toggle('hidden-text');
+        }
     });
 
     bubble.addEventListener('touchcancel', () => {
